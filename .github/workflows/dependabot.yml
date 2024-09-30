@@ -1,0 +1,13 @@
+# Basic `dependabot.yml` file with
+# minimum configuration for two package managers
+# https://docs.github.com/en/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
+
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directories:
+        - "/helyos_dashboard"
+        - "/helyos_server"
+        - "/tests"
+    schedule:
+      interval: "weekly"
