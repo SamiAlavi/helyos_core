@@ -10,8 +10,13 @@ updates:
       interval: "weekly"
       day: "sunday"
       time: "23:00"
-    commit-message:
-      prefix: "deps:helyos_dashboard"
+    groups:
+      all-deps:
+        patterns:
+          - "*"
+        commit-message:
+          prefix: "deps:helyos_dashboard"
+          include: "scope"
     ignore:
       - dependency-name: "*"
         update-types: ["version-update:semver-major"]
@@ -26,8 +31,13 @@ updates:
       interval: "weekly"
       day: "sunday"
       time: "23:00"
-    commit-message:
-      prefix: "deps:helyos_server"
+    groups:
+      all-deps:
+        patterns:
+          - "*"
+        commit-message:
+          prefix: "deps:helyos_server"
+          include: "scope"
     ignore:
       - dependency-name: "*"
         update-types: ["version-update:semver-major"]
@@ -42,8 +52,13 @@ updates:
       interval: "weekly"
       day: "sunday"
       time: "23:00"
-    commit-message:
-      prefix: "deps:tests"
+    groups:
+      all-deps:
+        patterns:
+          - "*"
+        commit-message:
+          prefix: "deps:tests"
+          include: "scope"
     ignore:
       - dependency-name: "*"
         update-types: ["version-update:semver-major"]
