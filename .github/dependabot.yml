@@ -11,7 +11,7 @@ updates:
       day: "sunday"
       time: "23:00"
     commit-message:
-      prefix: "[deps] helyos_dashboard"
+      prefix: "[helyos_dashboard] "
       include: "scope"
     groups:
       helyos-dashboard-deps:
@@ -32,7 +32,7 @@ updates:
       day: "sunday"
       time: "23:00"
     commit-message:
-      prefix: "[deps] helyos_server"
+      prefix: "[helyos_server] "
       include: "scope"
     groups:
       helyos-server-deps:
@@ -53,7 +53,7 @@ updates:
       day: "sunday"
       time: "23:00"
     commit-message:
-      prefix: "[deps] tests"
+      prefix: "[tests] "
       include: "scope"
     groups:
       tests-deps:
