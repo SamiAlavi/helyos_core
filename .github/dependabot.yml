@@ -11,10 +11,10 @@ updates:
       day: "sunday"
       time: "23:00"
     commit-message:
-      prefix: "deps:helyos_dashboard"
+      prefix: "[deps] helyos_dashboard"
       include: "scope"
     groups:
-      all-deps:
+      helyos-dashboard-deps:
         patterns:
           - "*"
     ignore:
@@ -32,10 +32,10 @@ updates:
       day: "sunday"
       time: "23:00"
     commit-message:
-      prefix: "deps:helyos_server"
+      prefix: "[deps] helyos_server"
       include: "scope"
     groups:
-      all-deps:
+      helyos-server-deps:
         patterns:
           - "*"
     ignore:
@@ -53,10 +53,10 @@ updates:
       day: "sunday"
       time: "23:00"
     commit-message:
-      prefix: "deps:tests"
+      prefix: "[deps] tests"
       include: "scope"
     groups:
-      all-deps:
+      tests-deps:
         patterns:
           - "*"
     ignore:
