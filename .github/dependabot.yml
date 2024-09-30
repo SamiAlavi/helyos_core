@@ -15,3 +15,6 @@ updates:
       time: "23:00"
     commit-message:
       prefix: "deps"  # Custom prefix for the PR titles
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]  # Ignore major version updates
