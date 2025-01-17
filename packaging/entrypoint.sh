@@ -42,6 +42,9 @@ if [ "$RUN_MODE" = "db_init" ] || [ "$CREATEDB" = "True" ]; then
 fi
 
 
+echo "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+echo "Ensure there is always a helyos admin account"
+echo "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 # Ensure there is always a helyos admin account and a database role for graphql in the database 
 /usr/local/helyos_core/helyos_database/db_commands/create_admin_account.sh
 
@@ -52,7 +55,7 @@ cleanup() {
     wait $NODE_PID
 }
 
-
+echo ""
 if [ "$RUN_MODE" = "production" ]; then
     # Run Nodejs backend
     if [ -f "/usr/local/helyos_core/helyos_server/helyos_core.app" ]; then
@@ -65,7 +68,7 @@ if [ "$RUN_MODE" = "production" ]; then
         echo "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
         echo "RUN NODEJS helyOS server"
         echo "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-        node /usr/local/helyos_core/helyos_server/src/main.js &
+        node /usr/local/helyos_core/helyos_server/dist/index.js &
         NODE_PID=$!
     fi
 
@@ -79,7 +82,7 @@ if [ "$RUN_MODE" = "test" ]; then
     echo "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
     echo "RUN NODEJS and TEST"
     echo "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-    nohup node /usr/local/helyos_core/helyos_server/src/main.js
+    nohup node /usr/local/helyos_core/helyos_server/dist/index.js
     npm --prefix /usr/src/app run test
 fi
 

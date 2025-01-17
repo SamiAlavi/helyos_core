@@ -28,7 +28,7 @@
           <th>x</th>
           <th>y</th>
           <th>
-            msg/sec <br />
+            msg/sec <br/>
             <span style="font-size: smaller"> 1 to 30 Hz </span>
           </th>
           <th>
@@ -56,6 +56,7 @@
           <td
             [ngClass]="{
               'bg-danger': item.msgPerSec > 30 && item.connectionStatus === 'online',
+              disabled: item.connectionStatus === 'offline',
             }"
             title="Optimal: 10Hz.">
             {{ item.msgPerSec | number: '1.2-2' }}
@@ -63,12 +64,18 @@
           <td
             [ngClass]="{
               'bg-danger': item.updtPerSec > 5 && item.connectionStatus === 'online',
+              disabled: item.connectionStatus === 'offline',
             }"
             title="Optimal: < 2 Hz">
             {{ item.updtPerSec | number: '1.2-2' }}
           </td>
           <td>{{ item.yardId }}</td>
-          <td>{{ item.status }}</td>
+          <td
+            [ngClass]="{
+              disabled: item.connectionStatus === 'offline',
+            }">
+            {{ item.status }}
+          </td>
         </tr>
       </tbody>
     </table>
@@ -128,7 +135,7 @@
                 </fieldset>
 
                 <fieldset class="form-group col-xl-2">
-                  <label for="yardId">yard id</label>
+                  <label for="yardId">Yard id</label>
                   <input
                     id="yardId"
                     type="number"
@@ -173,6 +180,20 @@
 
               <div class="row">
                 <fieldset class="form-group col-xl-12">
+                  <label for="description"> Description </label>
+                  <input
+                    id="description"
+                    class="form-control"
+                    [(ngModel)]="selectedItem.description"
+                    name="description"
+                    maxlength="255"
+                    placeholder="Add here a short description..." />
+                </fieldset>
+              </div>
+
+
+              <div class="row">
+                <fieldset class="form-group col-xl-12">
                   <label for="publicKey"> Public key (PEM) </label>
                   <textarea
                     id="publicKey"
@@ -205,7 +226,7 @@
               <p>The position parameters should be set according to the chosen reference in your application.</p>
 
               <div class="row">
-                <fieldset class="form-group col-xl-3">
+                <fieldset class="form-group col-xl-2">
                   <label for="x">x (unit)</label>
                   <input
                     id="x"
@@ -215,7 +236,7 @@
                     name="x"
                     placeholder="5000" />
                 </fieldset>
-                <fieldset class="form-group col-xl-3">
+                <fieldset class="form-group col-xl-2">
                   <label for="y">y (unit)</label>
                   <input
                     id="y"
@@ -225,7 +246,7 @@
                     name="y"
                     placeholder="13000" />
                 </fieldset>
-                <fieldset class="form-group col-xl-3">
+                <fieldset class="form-group col-xl-2">
                   <label for="z">z (unit)</label>
                   <input
                     id="z"
@@ -235,16 +256,20 @@
                     name="z"
                     placeholder="13000" />
                 </fieldset>
-                <fieldset class="form-group col-xl-3">
-                  <label for="unit">unit</label>
+                <fieldset class="form-group col-xl-4">
+                  <label for="referencePoint">ref. point</label>
                   <input
-                    id="unit"
+                    id="referencePoint"
                     type="text"
                     class="form-control"
-                    [(ngModel)]="unit"
-                    name="unit"
-                    placeholder="e.g. mm" />
+                    [(ngModel)]="selectedItem.referencePoint"
+                    name="z"
+                    placeholder="e.g. body center" />
+                    <small class="form-text text-muted">
+                      Specify the point on the agent's body that corresponds to the given x, y, z coordinates.
+                    </small>
                 </fieldset>
+
               </div>
 
               <div class="row">
@@ -270,11 +295,54 @@
                 </fieldset>
               </div>
 
+              <div class="row">
+
+                <fieldset class="form-group col-xl-4">
+                  <label for="dataFormat">Coordinate Frame</label>
+                  <select
+                      id="coordinateFrame"
+                      class="form-control"
+                      [(ngModel)]="selectedItem.coordinateFrame"
+                      name="coordinateFrame">
+                      <option value="WGS84">WGS84</option>
+                      <option value="UTM">UTM</option>
+                      <option value="local-UTM">local-UTM</option>
+                      <option value="Other...">Other...</option>
+                      <option *ngIf="!['local-UTM', 'UTM', 'WGS84', 'Other...'].includes(selectedItem.coordinateFrame)" 
+                      [value]="selectedItem.coordinateFrame">{{ selectedItem.coordinateFrame }}</option>
+                  </select>
+                  <input
+                      *ngIf="selectedItem.coordinateFrame === 'Other...'"
+                      type="text"
+                      class="form-control mt-2"
+                      [(ngModel)]="selectedItem._customCoordinateFrame"
+                      name="_customCoordinateFrame"
+                      placeholder="Enter custom value" />
+                </fieldset>
+
+                <fieldset class="form-group col-xl-4">
+                  <label for="unit">Units for (x,y,z) and orientations</label>
+                  <input
+                    id="unit"
+                    type="text"
+                    class="form-control"
+                    [(ngModel)]="selectedItem.unit"
+                    name="unit"
+                    placeholder="e.g. mm" />
+                </fieldset>
+
+                <div *ngIf="agentYard && (agentYard?.coordinateFrame != selectedItem.coordinateFrame || agentYard?.unit != selectedItem.unit)" 
+                    class="col-xl-3" style="font-size: small; color: red; margin: auto ">
+                  The coordinate frame or position units reported by this agent may be incompatible with the current yard!
+                </div>
+
+              </div>
+
               <br />
 
               <div class="row">
                 <fieldset class="form-group col-xl-12">
-                  <label for="geometry"> geometry (JSON)</label>
+                  <label for="geometry"> Geometry (JSON)</label>
                   <textarea
                     id="geometry"
                     class="form-control"
@@ -406,47 +474,115 @@
                 </fieldset>
               </div>
 
-              <div class="row" *ngIf="selectedItem.allowAnonymousCheckin">
-                <div class="col-xl-12">
-                  <br />
-                  <p>
-                    The agent can perform the check-in using the
-                    <i>anonymous</i> account *, helyOS will automatically create a RabbitMQ account and send the
-                    username and password to the agent.
+
+              <div  style="margin-left: 12px;">
+                  <div class="row" *ngIf="selectedItem.allowAnonymousCheckin">
+                    <div class="col-xl-12">
+                      <p style="font-size: small">
+                        helyOS automatically creates a RabbitMQ account; the agent can perform the check-in using the
+                        <i>anonymous</i>* account. The new username and password will be sent to the agent. Please refrain from using this method in production. 
+                      </p>
+                      
+                      <p style="font-size: small">
+                        * (username, password) = (anonymous, anonymous). The agent must possess the
+                        AGENT_REGISTRATION_TOKEN.
+                      </p>
+                    </div>
+                  </div>
+                  <div class="row" *ngIf="!selectedItem.allowAnonymousCheckin">
+                    <fieldset class="form-group col-xl-6">
+                      <label for="rbmqUsername">username *</label>
+                      <input
+                        id="rbmqUsername"
+                        class="form-control"
+                        [(ngModel)]="selectedItem.rbmqUsername"
+                        (ngModelChange)="rbmqAccountChange = true"
+                        name="rbmqUsername"
+                        placeholder="0000-0000-0000-0000" />
+                    </fieldset>
+
+                    <fieldset class="form-group col-xl-6">
+                      <label for="rbmqPassword"> password </label>
+                      <input
+                        id="rbmqPassword"
+                        class="form-control"
+                        [(ngModel)]="rbmqPassword"
+                        (ngModelChange)="rbmqAccountChange = true"
+                        name="rbmqPassword"
+                        placeholder="*********" />
+                    </fieldset>
+                    <p style="font-size: small" class="col-xl-12">
+                      * helyOS will accept messages from this agent only if the username matches the uuid.
+                    </p>
+                  </div>
+              </div>
+
+
+              <div class="row">
+                <fieldset class="form-group col-xl-6">
+                  <label for="permissionOption">Permissions</label>
+                  <select
+                    id="permissionOption"
+                    class="form-control form-select"
+                    [disabled]="selectedItem.protocol === 'MQTT'"
+                    [(ngModel)]="permissionOption"
+                    name="permissionOption"
+                    (ngModelChange)="changePermissions()">
+                    <option [ngValue]="'loose'">Free to send and receive messages</option>
+                    <option [ngValue]="'strict'">Only exchange messages with helyOS core</option>
+                    <option [ngValue]="'other'">Custom message permissions</option>
+                  </select>
+                </fieldset>
+              </div>
+
+              <div  style="margin-left: 12px;">
+                  <p  *ngIf="selectedItem.protocol === 'MQTT'" style="font-size: small;">
+                      Permission options are not available in the MQTT protocol.
                   </p>
-                  <p style="font-size: small">
-                    * (username, password) = (anonymous, anonymous). The agent must possess the
-                    AGENT_REGISTRATION_TOKEN.
-                  </p>
+
+                <div *ngIf="selectedItem.protocol !== 'MQTT'" >
+                    <div class="row">
+                      <fieldset class="form-group col-xl-12">
+                        <label for="readPermission">read</label>
+                        <input
+                          [readonly]="permissionOption!=='other'"
+                          id="readPermissions"
+                          class="form-control"
+                          [(ngModel)]="selectedItem.readPermissions"
+                          name="readPermissions"
+                          />
+                      </fieldset>
+                    </div>
+
+                    <div class="row">
+                      <fieldset class="form-group col-xl-12">
+                        <label for="writePermission"> write </label>
+                        <input
+                          [readonly]="permissionOption!=='other'"
+                          id="writePermissions"
+                          class="form-control"
+                          [(ngModel)]="selectedItem.writePermissions"
+                          name="writePermissions"
+                          />
+                      </fieldset>
+                    </div>
+
+                    <div class="row">
+                      <fieldset class="form-group col-xl-12">
+                        <label for="configurePermission"> configure </label>
+                        <input
+                          [readonly]="permissionOption!=='other'"
+                          id="configurePermissions"
+                          class="form-control"
+                          [(ngModel)]="selectedItem.configurePermissions"
+                          name="configurePermissions"
+                          />
+                      </fieldset>
+                    </div>
                 </div>
               </div>
 
-              <div class="row" *ngIf="!selectedItem.allowAnonymousCheckin">
-                <fieldset class="form-group col-xl-6">
-                  <label for="rbmqUsername">username *</label>
-                  <input
-                    id="rbmqUsername"
-                    class="form-control"
-                    [(ngModel)]="selectedItem.rbmqUsername"
-                    (ngModelChange)="rbmqAccountChange = true"
-                    name="rbmqUsername"
-                    placeholder="0000-0000-0000-0000" />
-                </fieldset>
 
-                <fieldset class="form-group col-xl-6">
-                  <label for="rbmqPassword"> password </label>
-                  <input
-                    id="rbmqPassword"
-                    class="form-control"
-                    [(ngModel)]="rbmqPassword"
-                    (ngModelChange)="rbmqAccountChange = true"
-                    name="rbmqPassword"
-                    placeholder="*********" />
-                </fieldset>
-                <p style="font-size: small" class="col-xl-12">
-                  * helyOS will accept messages from this agent only if the username matches the uuid.
-                </p>
-              </div>
             </div>
 
             <h5>State Properties</h5>

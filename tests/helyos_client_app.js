@@ -36,7 +36,7 @@ class HelyOSClientApplication {
 
                 if (result['check']){
                     clearInterval(watcher);
-                    resolve(true);
+                    resolve(result['value']);
                 } 
        
                 tries += 1;
@@ -63,6 +63,17 @@ class HelyOSClientApplication {
     }
 
 
+    waitAgentStatuses(agentId, statuses) {
+        const checkValue = (agentId) => {
+            return this.helyosService.agents.get(agentId)
+                  .then(serv => ({check: statuses.includes(serv.status), value: serv.status}))
+                  .catch(err => ({check: false, value: null}));
+
+        }
+  
+        return this._waitStatus(checkValue, agentId, statuses);
+    }
+
 
     waitMicroserviceStatus(id, status) {
         const checkValue = (id) => {
@@ -84,6 +95,18 @@ class HelyOSClientApplication {
         }
   
         return this._waitStatus(checkValue, id, status);
+    }
+
+
+    waitAssignmentStatuses(agentId, statuses) {
+        const checkValue = (agentId) => {
+            return this.helyosService.assignments.get(agentId)
+                  .then(serv => ({check: statuses.includes(serv.status), value: serv.status}))
+                  .catch(err => ({check: false, value: null}));
+
+        }
+  
+        return this._waitStatus(checkValue, agentId, statuses);
     }
 
 
@@ -128,12 +151,12 @@ class HelyOSClientApplication {
         });
     }
 
-    createMissionForQueue(missionType = 'driving', queueId = null, runOrder = 1) {
+    createMissionForQueue(missionType = 'driving', queueId = null, runOrder = 1,) {
         return this.helyosService.workProcess.create({
             agentUuids: ["Ab34069fc5-fdgs-434b-b87e-f19c5435113"],   //  is the agent uuid. 
             yardId: 1,       // the yard where the agent has checked in.
             workProcessTypeName: missionType,  // name of the mission recipe as defined in helyOS dashboard
-            data: { "foo:": "bar", agent_id:1  },        // this data format depends on the microservice.
+            data: { "foo:": "bar", agent_id:1, nockSelector: runOrder },        // this data format depends on the microservice.
             status: 'draft',            // status = 'draft' will save the mission but no dispatch it.
             runOrder: runOrder,
             missionQueueId: queueId
@@ -221,8 +244,11 @@ class HelyOSClientApplication {
         return this.helyosService.serviceRequests.list({});
     }
 
-    getAgentRelatedLogs(uuid){
-        return this.helyosService.systemLogs.list({agentUuid: uuid});
+
+    async getAgentRelatedLogs(uuid) {
+        const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+        await sleep(1000);
+        return this.helyosService.systemLogs.list({agentUuid: uuid });
     }
 
     dumpLogsToFile(testNunber=1){

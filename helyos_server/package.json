@@ -1,20 +1,28 @@
 {
   "name": "helyos-core",
   "private": true,
-  "version": "2.1.0",
+  "version": "2.2.0",
   "description": "helyOS core",
   "repository": "",
   "author": {
     "name": "Carlos Viol Barbosa",
     "url": "https://helyosframework.org/"
   },
-  "bin": "src/main.js",
+  "bin": "dist/main.js",
   "license": "Modified Apache-2.0",
-  "main": "src/main.js",
+  "main": "src/index.ts",
   "devDependencies": {
-    "jest": "^27.3.1"
+    "@types/amqplib": "^0.10.6",
+    "@types/express": "^5.0.0",
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^22.10.2",
+    "@types/superagent": "^8.1.9",
+    "jest": "^27.3.1",
+    "typescript": "^5.7.2"
   },
   "dependencies": {
+    "@socket.io/cluster-adapter": "^0.2.2",
+    "@socket.io/redis-adapter": "^8.3.0",
     "amqplib": "^0.10.3",
     "events": "^3.3.0",
     "express": "4.21.0",
@@ -22,16 +30,19 @@
     "nock": "^13.5.4",
     "pg": "^8.7.3",
     "postgraphile": "4.13.0",
+    "redis": "^4.6.15",
     "socket.io": "4.7.5",
     "superagent": "^8.1.2",
     "util": "^0.11.1",
     "uuid": "^9.0.1"
   },
   "scripts": {
-    "start": "node src/main.js",
+    "start_ccd": "node dist/index.js",
     "test": "bash src/test/test.sh",
     "make_map_api_doc": "redoc-cli bundle -o docs/map_api.html docs/helyos_map_services.json",
     "make_path_api_doc": "redoc-cli bundle -o docs/path_api.html docs/helyos_path_planner_services.json",
-    "test:watch": "npm run test -- --watch"
+    "test:watch": "npm run test -- --watch",
+    "build": "tsc",
+    "start": "node dist/index.js"
   }
 }

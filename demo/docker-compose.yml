@@ -1,6 +1,19 @@
 version: '3.5'
 services:
 
+
+
+    local_redis:
+        image: redis:latest
+        container_name: local_redis
+        ports:
+        - "6379:6379"
+        volumes:
+        - redis-data:/data
+        command: redis-server --requirepass mypass
+        networks:
+            - control-tower-net
+
     # ----------------- Control Tower Database and Message Broker -----------------
 
     local_postgres:
@@ -44,12 +57,14 @@ services:
             - ./settings/db_initial_data/:/etc/helyos/db_initial_data/
             - ./settings/rsa_keys/helyos_private.key:/etc/helyos/.ssl_keys/helyos_private.key:ro
             - ./settings/rsa_keys/helyos_public.key:/etc/helyos/.ssl_keys/helyos_public.key:ro
+            # - ../helyos_server:/usr/local/helyos_core/helyos_server
 
         environment:
             # Check the documentation for more details: https://helyos-manual.readthedocs.io/en/latest/2-helyos-configuration/getting-started.html#helyos-settings
             # DATABASE
             - PGUSER=helyos_db_admin
             - PGPASSWORD=helyos_secret
+            - JWT_SECRET=keyboard_kitten
             - PGHOST=local_postgres
             - PGDATABASE=smartfarm_db
             - PGPORT=5432
@@ -63,6 +78,11 @@ services:
             - RBMQ_API_PORT=15672
             - RBMQ_SSL=False
             - RBMQ_API_SSL=False
+
+            # REDIS-COMPATIBLE inMEM DB
+            - REDIS_HOST=local_redis
+            - REDIS_PORT=6379
+            - REDIS_PASSWORD=mypass
 
             # RBMQ ACCOUNTS
             - CREATE_RBMQ_ACCOUNTS=True
@@ -85,7 +105,8 @@ services:
     # ----------------- A Simple Truck Simulator -----------------
 
     agent_simulator_1:
-        image: helyosframework/helyos_agent_slim_simulator:0.7.5
+        image: helyosframework/helyos_agent_slim_simulator:0.8.2
+        platform: linux/amd64
 
         environment:
 
@@ -133,3 +154,5 @@ volumes:
         external: false
     rbmq_data:
         external: false
+    redis-data:
+        driver: local

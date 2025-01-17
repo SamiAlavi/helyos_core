@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { H_Agent, H_AgentInterconnection, H_InstantAction } from 'helyosjs-sdk';
 import { HelyosService } from '../../services/helyos.service';
-import { AgentClass } from 'helyosjs-sdk/dist/helyos.models';
+import { AgentClass, H_Yard } from 'helyosjs-sdk/dist/helyos.models';
 
 @Component({
   selector: 'app-agent-vehicles',
@@ -19,13 +19,34 @@ export class AgentVehiclesComponent implements OnInit {
   public showOthers = false;
   private agentClass: AgentClass = AgentClass.Vehicle;
   public saveStateMsg: string = '';
+  public agentYard: H_Yard = null;
+  public permissionOption: string;
+  public readPermissions: string;
+  public writePermissions: string;
+  public configurePermissions: string;
+  private readStrict: string;
+  private writeStrict: string;
+  private configureStrict: string;
 
   constructor(private helyosService: HelyosService) {
 
   }
 
   ngOnInit() {
-    this.list();
+    this.loadConfigurations()
+    .then(() => this.list());
+  }
+
+
+  loadConfigurations() {
+    return this.helyosService.methods.RBMQConfig.list()
+    .then(rv => {
+      const config =rv[0];
+      this.readStrict = `${config.agentsDlExchange}|${config.agentsAnonymousExchange}|${config.agentsMqttExchange}`;
+      this.writeStrict = `${config.agentsUlExchange}|${config.agentsAnonymousExchange}|${config.agentsMqttExchange}`;
+      this.configureStrict = `.*`;
+    
+    })
   }
 
   list() {
@@ -47,6 +68,9 @@ export class AgentVehiclesComponent implements OnInit {
   changeProtocol() {
     if (this.selectedItem.protocol === 'MQTT') {
       this.selectedItem.allowAnonymousCheckin = false;
+      this.permissionOption = 'loose';
+    } else {
+      this.setPermissionOption();
     }
   }
 
@@ -106,15 +130,30 @@ export class AgentVehiclesComponent implements OnInit {
         this.selectedItem.wpClearance = JSON.stringify(r.wpClearance, null, 2);
         this.rbmqPassword = '';
         this.saveStateMsg = '';
+        this.readPermissions =  this.selectedItem.readPermissions; 
+        this.writePermissions = this.selectedItem.writePermissions;
+        this.configurePermissions = this.selectedItem.configurePermissions; 
+        this.setPermissionOption();
         const id = r.id;
         const leaderId = typeof id === 'string' ? Number(id) : id;
+
         this.helyosService.methods.toolsInterconnections.list({
           leaderId: leaderId,
         })
-          .then(r => {
+        .then(r => {
             this.interconnections = r;
             return this.interconnections;
-          });
+        })
+        .then(() => {
+          this.helyosService.methods.yard.get(this.selectedItem.yardId as any)
+          .then( yard => {
+            if (yard) {
+              this.agentYard = yard;
+            } else {
+              this.agentYard = null;
+            }
+          })
+        });
       });
   }
 
@@ -158,8 +197,14 @@ export class AgentVehiclesComponent implements OnInit {
     delete patch.sensors;
     delete patch.agent_poses;
     delete patch.rbmqUsername;
+    delete patch._customCoordinateFrame;
+
     if (patch.uuid) {
       patch.uuid = patch.uuid.trim();
+    }
+
+    if (item._customCoordinateFrame){
+      patch.coordinateFrame = item._customCoordinateFrame;
     }
 
     try {
@@ -292,6 +337,48 @@ export class AgentVehiclesComponent implements OnInit {
         rbmqUsername: '',
       }));
       return Promise.all(promisses).then(() => Promise.all(updtPromises)).then(() => this.interconnectionList());
+    }
+  }
+
+
+  changePermissions() {
+    switch (this.permissionOption) {
+      case 'loose':
+        this.selectedItem.readPermissions = '.*';
+        this.selectedItem.writePermissions = '.*';
+        this.selectedItem.configurePermissions = '.*';
+        break;
+      
+      case 'strict':
+        this.selectedItem.readPermissions =  this.readStrict;
+        this.selectedItem.writePermissions =  this.writeStrict;
+        this.selectedItem.configurePermissions =  this.configureStrict;
+        break;
+      
+      case 'other':
+        this.selectedItem.readPermissions = this.readPermissions;
+        this.selectedItem.writePermissions = this.writePermissions;
+        this.selectedItem.configurePermissions = this.configurePermissions;
+        break;
+    
+      default:
+        break;
+    }
+  }
+
+  setPermissionOption() {
+    const { configurePermissions, readPermissions, writePermissions } = this.selectedItem;
+  
+    if (configurePermissions === '.*' && readPermissions === '.*' && writePermissions === '.*') {
+      this.permissionOption = 'loose';
+    } else if (
+      readPermissions === this.readStrict &&
+      writePermissions === this.writeStrict &&
+      configurePermissions === this.configureStrict
+    ) {
+      this.permissionOption = 'strict';
+    } else {
+      this.permissionOption = 'other';
     }
   }
 
