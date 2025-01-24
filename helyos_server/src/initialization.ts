@@ -1,7 +1,7 @@
 import util from 'util';
 import fs from 'fs';
 import config from './config';
-import databaseServices from './services/database/database_services';
+import * as DatabaseService from './services/database/database_services';
 import rbmqServices from './services/message_broker/rabbitMQ_services';
 import { logData } from './modules/systemlog';
 
@@ -17,7 +17,7 @@ const { MESSAGE_RATE_LIMIT, MESSAGE_UPDATE_LIMIT,
 
 const { CHECK_IN_QUEUE, AGENT_MISSION_QUEUE, 
         AGENT_VISUALIZATION_QUEUE, AGENT_UPDATE_QUEUE,
-        AGENTS_UL_EXCHANGE,AGENTS_DL_EXCHANGE, RBMQ_VHOST,
+        AGENTS_UL_EXCHANGE,AGENTS_DL_EXCHANGE, RBMQ_VHOST, RBMQ_HOST,
         AGENTS_MQTT_EXCHANGE, ANONYMOUS_EXCHANGE,
         AGENT_STATE_QUEUE, SUMMARY_REQUESTS_QUEUE, 
         YARD_VISUALIZATION_QUEUE, CREATE_RBMQ_ACCOUNTS } = config;
@@ -46,8 +46,9 @@ export const initWatchers = () => {
 * Pre-populate the database.
 */
 export const setInitialDatabaseData = async () => {
+    const databaseServices = await DatabaseService.getInstance();
     // populate services data 
-    if (registerManyMicroservices('/etc/helyos/config/microservices.yml')) {
+    if (await registerManyMicroservices('/etc/helyos/config/microservices.yml')) {
         console.log(' ====== microservices.yml file processed =====')
     }
     else {
@@ -55,7 +56,7 @@ export const setInitialDatabaseData = async () => {
     }
 
     // populate missions data 
-    if (registerMissions('/etc/helyos/config/missions.yml')) {
+    if (await registerMissions('/etc/helyos/config/missions.yml')) {
         console.log(' ====== mission.yml file processed =====')
     } else {
         console.warn('mission config file not fully processed.')
@@ -77,7 +78,8 @@ export const setInitialDatabaseData = async () => {
          'agents_dl_exchange': AGENTS_DL_EXCHANGE,
          'agents_mqtt_exchange': AGENTS_MQTT_EXCHANGE,
          'agents_anonymous_exchange': ANONYMOUS_EXCHANGE,
-         'rbmq_vhost': RBMQ_VHOST
+         'rbmq_vhost': RBMQ_VHOST,
+         'rbmq_host': RBMQ_HOST,
         }
         const rbmq_config = await databaseServices.rbmq_config.get('rbmq_vhost', RBMQ_VHOST, ['id']);
         if (rbmq_config.length) {
@@ -96,34 +98,47 @@ export const setInitialDatabaseData = async () => {
 /**
  * createOrUpdateAgents(filenames) 
  * Register agents in the database by listing the public key files saved in the agent_public_keys folder. 
- * The agent UID will be the name of the file wihout extension.
+ * The agent UID will be the name of the file without extension.
  *
  * @param {string[]} fileNames
- * @returns {Promise<any>}
+ * @returns {Promise<any[]>} - Resolves with an array of results from the database operations.
  */
-function createOrUpdateAgents(fileNames) {
-    const promises = fileNames.map(fileName => {
-        if (!fileName) { return Promise.resolve(0) }
+async function createOrUpdateAgents(fileNames: string[]): Promise<any[]> {
+    const databaseServices = await DatabaseService.getInstance();
+    const results: Promise<any>[]= [];
+    for (const fileName of fileNames) {
+        if (!fileName) {
+            results.push(Promise.resolve(0));
+            continue;
+        }
         const uuid = fileName.split('.')[0];
         const pubKey = fs.readFileSync(`/etc/helyos/.ssl_keys/agent_public_keys/${fileName}`, { encoding: 'utf8', flag: 'r' });
-        return databaseServices.agents.get('uuid', uuid)
-            .then(agents => {
-                if (agents.length > 0) {
-                    return databaseServices.agents.update('id', agents[0].id, { public_key: pubKey });
-                } else {
-                    console.log("create agent ", uuid);
-                    return databaseServices.agents.insert({
-                        uuid: uuid,
-                        name: 'undefined',
-                        message_channel: uuid,
-                        connection_status: 'offline',
-                        code: 'undefined',
-                        public_key: pubKey
-                    });
-                }
-            });
-    });
-    return Promise.all(promises);
+        
+        try {
+            const agents = await databaseServices.agents.get('uuid', uuid);
+            
+            if (agents.length > 0) {
+                const updateResult = await databaseServices.agents.update('id', agents[0].id, { public_key: pubKey });
+                results.push(updateResult);
+            } else {
+                console.log("create agent ", uuid);
+                const insertResult = await databaseServices.agents.insert({
+                    uuid: uuid,
+                    name: 'undefined',
+                    message_channel: uuid,
+                    connection_status: 'offline',
+                    code: 'undefined',
+                    public_key: pubKey
+                });
+                results.push(insertResult);
+            }
+        } catch (error: any) {
+            console.error(`Error processing file ${fileName}:`, error);
+            results.push(error);
+        }
+    }
+
+    return results;
 }
 
 
