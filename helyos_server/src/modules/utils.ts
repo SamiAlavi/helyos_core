@@ -17,6 +17,16 @@ const isISODate = (value: string): boolean => {
 };
 
 /**
+ * Parses a given value to an integer and returns null in case of an error."
+ */
+function parseToInteger(value: any): number | null  {
+    if (value === undefined || value === null ) return null;
+
+    const parsedInteger = parseInt(value, 10);
+    return isNaN(parsedInteger) ? null : parsedInteger;
+}
+
+/**
  * Serializes non-string values of an object to strings.
  */
 const serializeNonStringValues = (obj: Record<string, any>): Record<string, string> => {
@@ -202,4 +212,4 @@ function topologicalIndexing(requestList: Request[] = []): IndexedRequest[] {
 // console.log(result);
 
 
-export {camelize, camelizeAttributes, snakeCaseAttributes, topologicalIndexing, lookup, serializeNonStringValues, parseObjectValues, snakecasize};
+export {camelize, parseToInteger, camelizeAttributes, snakeCaseAttributes, topologicalIndexing, lookup, serializeNonStringValues, parseObjectValues, snakecasize};

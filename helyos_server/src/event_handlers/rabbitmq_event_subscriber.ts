@@ -27,6 +27,7 @@ const {
     
 import { MISSION_STATUS } from '../modules/data_models';
 import { constrainedMemory } from 'process';
+import { requestMission } from './rabbitmq_event_handlers/mission_request_handler';
 
 interface ParsedMessage {
   obj: any;
@@ -308,10 +309,7 @@ async function handleBrokerMessages(channel: any, queueName: string, message: an
 
         case AGENT_MISSION_QUEUE:
           if (objMsg.obj.body) {
-            const newWProc = { status: MISSION_STATUS.DISPATCHED };
-            databaseServices.work_processes.insert({ ...objMsg.obj.body, ...newWProc })
-              .then((wpId) => logData.addLog('agent', { ...objMsg.obj.body, work_process_id: wpId }, 'info', `agent created a mission: ${wpId}`))
-              .catch((e) => logData.addLog('agent', objMsg.obj, 'error', `agent create mission=${e}`));
+            requestMission(uuid, objMsg.obj, msgProps);
           } else {
             logData.addLog('agent', objMsg.obj, 'error', `agent create mission: input data not found`);
           }
@@ -324,16 +322,26 @@ async function handleBrokerMessages(channel: any, queueName: string, message: an
               .catch((e) => {
                 const msg = e.message ? e.message : e;
                 logData.addLog('agent', objMsg.obj, 'error', `agent state update: ${msg}`);
+                channel.nack(message, false, false);
               });
           } else {
             logData.addLog('agent', {}, 'error', "state update message does not contain agent status.");
+            channel.nack(message, false, false);
           }
           break;
 
         case AGENT_UPDATE_QUEUE:
           if (['agent_update', 'agent_sensors'].includes(objMsg.obj.type)) {
             agentAutoUpdate(objMsg.obj, uuid, 'realtime')
-              .then(() => channel.ack(message));
+              .then(() => channel.ack(message))
+              .catch((e) => {
+                const msg = e.message ? e.message : e;
+                logData.addLog('agent', objMsg.obj, 'error', `agent auto update: ${msg}`);
+                channel.nack(message, false, false);
+              });
+          } else {
+            logData.addLog('agent', {}, 'error', `agent update message has an invalid type: ${objMsg.obj.type}`);
+            channel.nack(message, false, false); 
           }
           break;
 
